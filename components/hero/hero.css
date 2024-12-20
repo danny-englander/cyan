@@ -1,0 +1,7 @@
+.feature {
+  background-color: var(--primary);
+}
+.c-hero__field-links {
+  display: flex;
+  background-color: var(--secondary);
+}

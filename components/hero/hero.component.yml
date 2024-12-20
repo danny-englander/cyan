@@ -1,0 +1,30 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/10.1.x/core/modules/sdc/src/metadata.schema.json
+name: Feature
+description: Feature with title, image, and feature link
+status: experimental
+slots:
+  body: {}
+  media_image: {}
+  cta_links: {}
+props:
+  type: object
+  properties:
+    title:
+      title: Heading
+      description: The title for the banner text.
+      examples:
+        - Join us at The Conference
+      type: string
+    mediaInverse:
+      title: Media Inverse
+      description: Whether the media should be displayed in inverse mode.
+      type: boolean
+    heroBody:
+      title: Hero Body
+      type: string
+      examples:
+        - hello lorum ipsum
+    mediaImage:
+      title: Media Image
+      description: Image for the feature.
+      type: string
