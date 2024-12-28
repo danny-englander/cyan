@@ -33,7 +33,6 @@ export default {
     postcssNested(),
     postcssMixins(),
     postcssCustomMedia(),
-    postcssUtilities(),
     postcssDiscardComments({
       removeAll: true,
     }),
