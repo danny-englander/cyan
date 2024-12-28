@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "watch": "npm run build -- --watch & browser-sync start --proxy 'solspire.lndo.site' --host 'solspire.lndo.site' --files 'dist/**/*.css, components/**/*.css, templates/**/*.twig, components/**/*.twig' --port 3000 --no-notify --open false"
+    "watch": "npm run build -- --watch & browser-sync start --proxy 'drop-components.ddev.site' --host 'drop-components.ddev.site' --port 5173 --no-notify --no-open --snippet --watch --files 'templates/**/*.twig, components/**/*.twig' --files 'dist/assets/styles/global.css' --serveStatic 'dist/assets/styles' --reloadDelay 0 --injectChanges"
   },
   "devDependencies": {
     "browser-sync": "^3.0.2",
