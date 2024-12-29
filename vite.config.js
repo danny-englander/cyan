@@ -8,97 +8,89 @@ import { promises as fs } from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Get all PostCSS files.
+// Get all PostCSS files
 const postCssFiles = glob.sync("components/**/*.pcss", { absolute: true });
 
-// Create the input object for Vite.
-const input = {
-  // Keep the global styles
-  "styles/global": path.resolve(__dirname, "./src/css/global/_index.pcss"),
-
-  // Compile each component's .pcss file in place.
-  ...Object.fromEntries(
-    postCssFiles
-      .filter((file) => file.includes("/components/"))
-      .map((file) => {
-        const relativePath = path.relative(__dirname, file);
-        const entryKey = relativePath.replace(".pcss", "");
-        return [entryKey, file];
-      })
-  ),
+// Component CSS plugin
+const componentCssPlugin = () => {
+  let isMoving = false;
+  return {
+    name: "component-css",
+    closeBundle: async () => {
+      if (isMoving) return; // Prevent recursive builds
+      try {
+        isMoving = true;
+        // Move each CSS file to its corresponding component directory
+        const cssFiles = glob.sync("temp-components/**/*.css");
+        for (const file of cssFiles) {
+          const targetPath = file.replace("temp-components/", "");
+          await fs.mkdir(path.dirname(targetPath), { recursive: true });
+          await fs.copyFile(file, targetPath);
+        }
+        // Clean up temp directory
+        await fs.rm("temp-components", { recursive: true, force: true });
+      } catch (err) {
+        console.error("Error moving component CSS files:", err);
+      } finally {
+        isMoving = false;
+      }
+    },
+  };
 };
 
-async function ensureDir(dirPath) {
-  try {
-    await fs.access(dirPath);
-  } catch {
-    await fs.mkdir(dirPath, { recursive: true });
-  }
-}
-
-async function moveFile(source, target) {
-  try {
-    await ensureDir(path.dirname(target));
-    await fs.rename(source, target);
-    console.log(`Moved: ${source} → ${target}`);
-  } catch (err) {
-    await fs.copyFile(source, target);
-    await fs.unlink(source);
-  }
-}
-
-const moveFiles = () => ({
-  name: "move-files",
-  closeBundle: async () => {
-    try {
-      const componentCssFiles = glob.sync(`dist/components/**/*.css`);
-      for (const file of componentCssFiles) {
-        const targetPath = file.replace(`dist/`, "");
-        await moveFile(file, targetPath);
-      }
-
-      const componentsDir = "dist/components";
-      if (
-        await fs
-          .access(componentsDir)
-          .then(() => true)
-          .catch(() => false)
-      ) {
-        await fs.rm(componentsDir, { recursive: true });
-        console.log("Cleaned up temporary component files");
-      }
-    } catch (err) {
-      console.error("Error during file moving:", err);
-    }
-  },
-});
-
-export default defineConfig({
+// Configuration for global CSS
+const globalConfig = defineConfig({
   build: {
     outDir: "dist",
     minify: false,
     rollupOptions: {
-      input,
+      input: {
+        global: path.resolve(__dirname, "./src/css/global/_index.pcss"),
+      },
       output: {
-        assetFileNames: (assetInfo) => {
-          if (!assetInfo.name) return "assets/[name][extname]";
-
-          // Handle component CSS - output directly to components directory
-          if (assetInfo.name.includes("components/")) {
-            return assetInfo.name.replace(".pcss", ".css");
-          }
-
-          if (assetInfo.name.includes("global")) {
-            return "assets/styles/global.css";
-          }
-
-          return "assets/[name][extname]";
-        },
+        assetFileNames: () => "assets/styles/global.css",
       },
     },
   },
-  plugins: [moveFiles()],
   css: {
     devSourcemap: true,
   },
 });
+
+// Configuration for component CSS
+const componentConfig = defineConfig({
+  build: {
+    outDir: "temp-components",
+    minify: false,
+    rollupOptions: {
+      input: Object.fromEntries(
+        postCssFiles.map((file) => {
+          const relativePath = path.relative(__dirname, file);
+          return [relativePath.replace(".pcss", ""), file];
+        })
+      ),
+      output: {
+        assetFileNames: (assetInfo) => {
+          if (!assetInfo.name) return "[name].css";
+          return assetInfo.name.replace(".pcss", ".css");
+        },
+      },
+    },
+    emptyOutDir: true,
+  },
+  plugins: [componentCssPlugin()],
+  css: {
+    devSourcemap: true,
+  },
+  // Add watch configuration to ignore CSS files
+  server: {
+    watch: {
+      ignored: ["**/*.css"],
+    },
+  },
+});
+
+// Export based on environment variable
+export default process.env.BUILD_TARGET === "components"
+  ? componentConfig
+  : globalConfig;

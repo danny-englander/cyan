@@ -5,12 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run build:global && npm run build:components",
+    "build:global": "vite build",
+    "build:components": "BUILD_TARGET=components vite build",
     "preview": "vite preview",
-    "watch": "npm run build -- --watch & browser-sync start --proxy 'drop-components.ddev.site' --host 'drop-components.ddev.site' --port 5173 --no-notify --no-open --snippet --watch --files 'templates/**/*.twig, components/**/*.twig' --files 'dist/assets/styles' --reloadDelay 0 --injectChanges"
+    "clean": "rm -rf dist temp-components node_modules/.vite && find components -name '*.css' -type f -delete",
+    "watch:global": "vite build --watch",
+    "watch:components": "BUILD_TARGET=components vite build --watch",
+    "watch:browser-sync": "browser-sync start --proxy 'drop-components.ddev.site' --host 'drop-components.ddev.site' --port 5173 --no-notify --no-open --snippet --files 'templates/**/*.twig, components/**/*.css, dist/assets/styles/**/*.css' --reload-delay 200 --injectChanges",
+    "watch": "concurrently \"npm run watch:global\" \"npm run watch:components\" \"npm run watch:browser-sync\""
   },
   "devDependencies": {
     "browser-sync": "^3.0.2",
+    "concurrently": "^8.2.2",
     "glob": "^11.0.0",
     "postcss": "^8.4.31",
     "postcss-custom-media": "^11.0.5",
